@@ -111,4 +111,8 @@ this screenshot uses `tokyo`, a 70 mb threshold, and cleanup enabled. the [confi
 
 ## License
 
-mit
+copyright (c) 2026 erdajt.
+
+indexof is free software under the [gnu general public license, version 3 or later](LICENSE) (`GPL-3.0-or-later`). you're free to use, study, modify, and share it. if you distribute a modified version, you must preserve those freedoms and provide the corresponding source under the license's terms.
+
+provided without warranty. see [LICENSE](LICENSE) for the full terms.

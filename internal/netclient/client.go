@@ -1,3 +1,6 @@
+// SPDX-FileCopyrightText: 2026 erdajt <erdajtsopjani.tech@gmail.com>
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package netclient
 
 import (
