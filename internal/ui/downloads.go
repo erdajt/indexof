@@ -57,7 +57,7 @@ func (m model) viewDownloads() string {
 		b.WriteString(m.styles.Help.Render("  No downloads yet") + "\n")
 	} else {
 		for i, job := range jobs {
-			st, written, total, name, errStr := job.Snapshot()
+			st, written, total, name, errStr, _, _ := job.Snapshot()
 
 			cursor := "  "
 			if i == m.dlCursor {
