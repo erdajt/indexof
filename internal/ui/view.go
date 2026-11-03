@@ -31,15 +31,20 @@ func (m model) View() string {
 	if m.countBuf != "" {
 		header += "  " + lipgloss.NewStyle().Foreground(m.styles.Accent).Render(m.countBuf)
 	}
-	b.WriteString(header + "\n\n")
+	b.WriteString(header)
+	b.WriteString("\n\n")
 
 	if m.loading {
-		b.WriteString("  " + m.spinner.View() + "  fetching…\n")
+		b.WriteString("  ")
+		b.WriteString(m.spinner.View())
+		b.WriteString("  fetching…\n")
 		return b.String()
 	}
 	if m.err != "" {
-		b.WriteString(m.styles.Error.Render("  "+m.err) + "\n\n")
-		b.WriteString(m.styles.Help.Render("  r retry   q quit") + "\n")
+		b.WriteString(m.styles.Error.Render("  " + m.err))
+		b.WriteString("\n\n")
+		b.WriteString(m.styles.Help.Render("  r retry   q quit"))
+		b.WriteByte('\n')
 		return b.String()
 	}
 
@@ -63,7 +68,12 @@ func (m model) View() string {
 		dlInfo = lipgloss.NewStyle().Foreground(m.styles.Warning).Render(fmt.Sprintf("  ↓%d", active))
 	}
 
-	b.WriteString("  " + m.styles.Status.Render(m.status) + "  " + mode + dlInfo + "\n")
+	b.WriteString("  ")
+	b.WriteString(m.styles.Status.Render(m.status))
+	b.WriteString("  ")
+	b.WriteString(mode)
+	b.WriteString(dlInfo)
+	b.WriteByte('\n')
 	b.WriteString(m.styles.Help.Render("  hjkl  gg/G  10j  v y  d  p  s settings  r  /  q"))
 	return b.String()
 }

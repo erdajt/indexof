@@ -67,7 +67,8 @@ func (m model) updateSettings(key string) (tea.Model, tea.Cmd) {
 
 func (m model) viewSettings() string {
 	var b strings.Builder
-	b.WriteString(m.styles.Title.Render(" settings ") + "\n\n")
+	b.WriteString(m.styles.Title.Render(" settings "))
+	b.WriteString("\n\n")
 
 	items := []struct{ name, val string }{
 		{"Editor", m.cfg.Editor},
@@ -88,8 +89,10 @@ func (m model) viewSettings() string {
 			cursor = "› "
 			style = style.Bold(true).Foreground(m.styles.SelFg).Background(m.styles.SelBg)
 		}
-		b.WriteString(style.Render(fmt.Sprintf("%s%-28s %s", cursor, it.name, it.val)) + "\n")
+		b.WriteString(style.Render(fmt.Sprintf("%s%-28s %s", cursor, it.name, it.val)))
+		b.WriteByte('\n')
 	}
-	b.WriteString("\n" + m.styles.Help.Render("  j/k move   enter cycle/toggle   s/esc back   (auto-saves)"))
+	b.WriteByte('\n')
+	b.WriteString(m.styles.Help.Render("  j/k move   enter cycle/toggle   s/esc back   (auto-saves)"))
 	return b.String()
 }

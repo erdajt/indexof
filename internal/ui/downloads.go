@@ -50,11 +50,13 @@ func (m model) updateDownloads(key string) (tea.Model, tea.Cmd) {
 
 func (m model) viewDownloads() string {
 	var b strings.Builder
-	b.WriteString(lipgloss.NewStyle().Bold(true).Foreground(m.styles.Accent).Render("  Downloads") + "\n\n")
+	b.WriteString(lipgloss.NewStyle().Bold(true).Foreground(m.styles.Accent).Render("  Downloads"))
+	b.WriteString("\n\n")
 
 	jobs := m.manager.Jobs()
 	if len(jobs) == 0 {
-		b.WriteString(m.styles.Help.Render("  No downloads yet") + "\n")
+		b.WriteString(m.styles.Help.Render("  No downloads yet"))
+		b.WriteByte('\n')
 	} else {
 		for i, job := range jobs {
 			st, written, total, name, errStr, _, _ := job.Snapshot()
@@ -80,8 +82,11 @@ func (m model) viewDownloads() string {
 			if i == m.dlCursor {
 				style = style.Bold(true).Foreground(m.styles.SelFg)
 			}
-			b.WriteString(style.Render(line) + "\n")
-			b.WriteString("    " + info + "\n\n")
+			b.WriteString(style.Render(line))
+			b.WriteByte('\n')
+			b.WriteString("    ")
+			b.WriteString(info)
+			b.WriteString("\n\n")
 		}
 	}
 	b.WriteString(m.styles.Help.Render("  j/k  space pause/resume  x cancel  c clear  p/esc back"))
@@ -92,13 +97,8 @@ func progressBar(pct float64, width int, accent lipgloss.Color) string {
 	if width < 8 {
 		width = 8
 	}
-	filled := int(pct * float64(width))
-	if filled > width {
-		filled = width
-	}
-	if filled < 0 {
-		filled = 0
-	}
+	filled := max(0, min(int(pct*float64(width)), width))
+
 	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 	return lipgloss.NewStyle().Foreground(accent).Render(bar)
 }
