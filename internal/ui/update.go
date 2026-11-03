@@ -3,7 +3,6 @@ package ui
 import (
 	"context"
 	"fmt"
-	"github.com/charmbracelet/bubbles/spinner"
 	"net/url"
 	"os"
 	"os/exec"
@@ -12,11 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/spinner"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/erdajt/indexof/internal/config"
+	"github.com/erdajt/indexof/internal/download"
 	"github.com/erdajt/indexof/internal/listing"
 )
 
@@ -34,6 +36,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, cmd
 
 	case tickMsg:
+		for _, job := range m.manager.Jobs() {
+			st, _, _, _, _, openAfter, dest := job.Snapshot()
+			if st == download.StateDone {
+				m.downloaded[dest] = struct{}{}
+				if openAfter {
+					job.ClearOpenAfter()
+					return m, tea.Batch(
+						tickCmd(),
+						func() tea.Msg { return readyToOpenMsg{path: dest} },
+					)
+				}
+			}
+		}
 		return m, tickCmd()
 
 	case fetchedMsg:

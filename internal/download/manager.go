@@ -107,6 +107,12 @@ func (m *Manager) Start(url, name, dest string, size int64, openAfter bool) *Job
 	return job
 }
 
+func (j *Job) ClearOpenAfter() {
+	j.mu.Lock()
+	j.OpenAfter = false
+	j.mu.Unlock()
+}
+
 func (m *Manager) run(job *Job) {
 	ctx, cancel := context.WithCancel(context.Background())
 	job.mu.Lock()
