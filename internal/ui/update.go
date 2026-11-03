@@ -64,8 +64,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			items = append(items, entryItem{entry: e})
 		}
 		m.list.SetItems(items)
+		m.list.ResetFilter() // important: clear any stale filter
 		m.list.Title = truncate(m.base.String(), m.width-10)
-		m.status = fmt.Sprintf("%d items", len(items))
+		if len(items) == 0 {
+			m.status = "0 items — page had no parseable links"
+		} else {
+			m.status = fmt.Sprintf("%d items", len(items))
+		}
 		return m, nil
 
 	case openDoneMsg:

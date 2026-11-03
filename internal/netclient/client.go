@@ -32,7 +32,7 @@ func (c *Client) Get(ctx context.Context, rawURL string) ([]byte, int, error) {
 			return nil, 0, err
 		}
 		req.Header.Set("User-Agent", c.ua)
-		req.Header.Set("Accept", "text/html,application/xhtml+xml,*/*")
+		req.Header.Set("Accept", "text/html,application/xhtml+xml,text/plain,*/*;q=0.8")
 
 		resp, err := c.http.Do(req)
 		if err != nil {
@@ -40,9 +40,9 @@ func (c *Client) Get(ctx context.Context, rawURL string) ([]byte, int, error) {
 			time.Sleep(time.Duration(i+1) * 300 * time.Millisecond)
 			continue
 		}
-		defer resp.Body.Close()
 
-		body, err := io.ReadAll(io.LimitReader(resp.Body, 8<<20))
+		body, err := io.ReadAll(io.LimitReader(resp.Body, 16<<20))
+		resp.Body.Close()
 		if err != nil {
 			last = err
 			continue

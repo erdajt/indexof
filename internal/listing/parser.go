@@ -19,68 +19,104 @@ type Entry struct {
 	SizeBytes int64
 }
 
-var sizeRe = regexp.MustCompile(`(?i)^\s*([\d.]+)\s*([KMGT]?I?B?)\s*$`)
+var (
+	sizeRe = regexp.MustCompile(`(?i)([\d.]+)\s*([KMGT]I?B?)`)
+	hrefRe = regexp.MustCompile(`(?i)href\s*=\s*["']([^"']+)["']`)
+)
 
 func Parse(base *url.URL, body []byte, showHidden bool) ([]Entry, error) {
-	doc, err := html.Parse(bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-
 	var entries []Entry
+
+	if doc, err := html.Parse(bytes.NewReader(body)); err == nil {
+		entries = append(entries, walkAnchors(doc, base, showHidden)...)
+	}
+	entries = append(entries, rawHrefs(base, body, showHidden)...)
+
+	return dedup(entries), nil
+}
+
+func walkAnchors(n *html.Node, base *url.URL, showHidden bool) []Entry {
+	var out []Entry
 	var walk func(*html.Node)
 	walk = func(n *html.Node) {
 		if n.Type == html.ElementNode && n.Data == "a" {
-			href := attr(n, "href")
-			if href == "" || href == "../" || href == "/" || strings.HasPrefix(href, "?") {
-				return
+			href := ""
+			for _, a := range n.Attr {
+				if a.Key == "href" {
+					href = a.Val
+					break
+				}
 			}
-
-			name := strings.TrimSpace(text(n))
-			if name == "" {
-				name = path.Base(href)
+			if e, ok := makeEntry(base, href, strings.TrimSpace(textContent(n)), showHidden); ok {
+				// size from nearby text
+				for sib := n.NextSibling; sib != nil; sib = sib.NextSibling {
+					if sib.Type == html.TextNode {
+						if s, b := parseSize(strings.TrimSpace(sib.Data)); b > 0 || s != "" {
+							e.Size, e.SizeBytes = s, b
+							break
+						}
+					}
+				}
+				out = append(out, e)
 			}
-			if !showHidden && strings.HasPrefix(name, ".") {
-				return
-			}
-
-			u, err := base.Parse(href)
-			if err != nil {
-				return
-			}
-
-			isDir := strings.HasSuffix(href, "/") || strings.HasSuffix(name, "/")
-			name = strings.TrimSuffix(name, "/")
-
-			sizeStr, sizeBytes := extractSize(n)
-
-			entries = append(entries, Entry{
-				Name:      name,
-				URL:       u.String(),
-				IsDir:     isDir,
-				Size:      sizeStr,
-				SizeBytes: sizeBytes,
-			})
 		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			walk(c)
 		}
 	}
-	walk(doc)
-	return dedup(entries), nil
+	walk(n)
+	return out
 }
 
-func extractSize(n *html.Node) (string, int64) {
-	for sib := n.NextSibling; sib != nil; sib = sib.NextSibling {
-		if sib.Type == html.TextNode {
-			raw := strings.TrimSpace(sib.Data)
-			if raw == "" {
-				continue
-			}
-			return parseSize(raw)
+func rawHrefs(base *url.URL, body []byte, showHidden bool) []Entry {
+	var out []Entry
+	for _, m := range hrefRe.FindAllStringSubmatch(string(body), -1) {
+		href := m[1]
+		if e, ok := makeEntry(base, href, "", showHidden); ok {
+			out = append(out, e)
 		}
 	}
-	return "", 0
+	return out
+}
+
+func makeEntry(base *url.URL, href, name string, showHidden bool) (Entry, bool) {
+	href = strings.TrimSpace(href)
+	if href == "" || href == "/" || href == "../" || href == "./" {
+		return Entry{}, false
+	}
+	if strings.HasPrefix(href, "?") || strings.HasPrefix(href, "#") || strings.HasPrefix(href, "javascript:") {
+		return Entry{}, false
+	}
+	if strings.EqualFold(href, "mailto:") || strings.Contains(href, "://") && base != nil {
+		// allow absolute http(s) links on same host only
+		if u, err := url.Parse(href); err == nil && base != nil {
+			if u.Scheme != "" && u.Host != "" && u.Host != base.Host {
+				return Entry{}, false
+			}
+		}
+	}
+
+	if name == "" {
+		name = path.Base(strings.TrimSuffix(href, "/"))
+	}
+	name = strings.TrimSpace(strings.TrimSuffix(name, "/"))
+	if name == "" || name == "." || name == ".." {
+		return Entry{}, false
+	}
+	if !showHidden && strings.HasPrefix(name, ".") {
+		return Entry{}, false
+	}
+
+	u, err := base.Parse(href)
+	if err != nil {
+		return Entry{}, false
+	}
+
+	return Entry{
+		Name:  name,
+		URL:   u.String(),
+		IsDir: strings.HasSuffix(href, "/"),
+	}, true
 }
 
 func parseSize(s string) (string, int64) {
@@ -90,7 +126,7 @@ func parseSize(s string) (string, int64) {
 	}
 	m := sizeRe.FindStringSubmatch(s)
 	if m == nil {
-		return s, 0
+		return "", 0
 	}
 	val, err := strconv.ParseFloat(m[1], 64)
 	if err != nil {
@@ -107,19 +143,10 @@ func parseSize(s string) (string, int64) {
 	case strings.HasPrefix(unit, "T"):
 		mult = 1024 * 1024 * 1024 * 1024
 	}
-	return s, int64(val * mult)
+	return strings.TrimSpace(m[0]), int64(val * mult)
 }
 
-func attr(n *html.Node, key string) string {
-	for _, a := range n.Attr {
-		if a.Key == key {
-			return a.Val
-		}
-	}
-	return ""
-}
-
-func text(n *html.Node) string {
+func textContent(n *html.Node) string {
 	var b strings.Builder
 	var f func(*html.Node)
 	f = func(n *html.Node) {
@@ -138,10 +165,14 @@ func dedup(in []Entry) []Entry {
 	seen := make(map[string]struct{}, len(in))
 	out := make([]Entry, 0, len(in))
 	for _, e := range in {
-		if _, ok := seen[e.Name]; ok {
+		key := e.Name
+		if e.IsDir {
+			key += "/"
+		}
+		if _, ok := seen[key]; ok {
 			continue
 		}
-		seen[e.Name] = struct{}{}
+		seen[key] = struct{}{}
 		out = append(out, e)
 	}
 	return out
