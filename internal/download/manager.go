@@ -42,14 +42,15 @@ func (s State) String() string {
 }
 
 type Job struct {
-	ID      string
-	URL     string
-	Name    string
-	Dest    string
-	Total   int64
-	Written int64
-	State   State
-	Err     string
+	ID        string
+	URL       string
+	Name      string
+	Dest      string
+	Total     int64
+	Written   int64
+	State     State
+	Err       string
+	OpenAfter bool
 
 	cancel context.CancelFunc
 	mu     sync.Mutex
@@ -87,14 +88,15 @@ func (m *Manager) ActiveCount() int {
 	return n
 }
 
-func (m *Manager) Start(url, name, dest string, size int64) *Job {
+func (m *Manager) Start(url, name, dest string, size int64, openAfter bool) *Job {
 	job := &Job{
-		ID:    fmt.Sprintf("%d", time.Now().UnixNano()),
-		URL:   url,
-		Name:  name,
-		Dest:  dest,
-		Total: size,
-		State: StateQueued,
+		ID:        fmt.Sprintf("%d", time.Now().UnixNano()),
+		URL:       url,
+		Name:      name,
+		Dest:      dest,
+		Total:     size,
+		State:     StateQueued,
+		OpenAfter: openAfter,
 	}
 
 	m.mu.Lock()
@@ -146,10 +148,10 @@ func (m *Manager) run(job *Job) {
 	}()
 }
 
-func (j *Job) Snapshot() (state State, written, total int64, name, errStr string) {
+func (j *Job) Snapshot() (state State, written, total int64, name, errStr string, openAfter bool, dest string) {
 	j.mu.Lock()
 	defer j.mu.Unlock()
-	return j.State, j.Written, j.Total, j.Name, j.Err
+	return j.State, j.Written, j.Total, j.Name, j.Err, j.OpenAfter, j.Dest
 }
 
 func (j *Job) GetState() State {

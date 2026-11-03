@@ -120,9 +120,9 @@ func (m model) handleConfirm(key string) (tea.Model, tea.Cmd) {
 	switch key {
 	case "y", "Y", keyEnter:
 		e := *m.confirm
-		action := m.confirmAction
+		openAfter := m.confirmAction == "open"
 		m.confirm = nil
-		m.startDownload(e, action == "open")
+		m.startDownload(e, openAfter)
 		m.status = "download started"
 	case "n", "N", keyEsc, keyQuit:
 		m.confirm = nil
@@ -261,11 +261,25 @@ func (m model) enterSelected() (tea.Model, tea.Cmd) {
 		m.loading = true
 		return m, m.fetch(u)
 	}
+
+	name := filepath.Base(i.entry.Name)
+	if name == "" || name == "." || name == ".." {
+		name = "file"
+	}
+	dest := m.manager.DestPath(m.cfg.DownloadDir, m.moveToCwd, name)
+
+	// Already on disk → just open
+	if st, err := os.Stat(dest); err == nil && !st.IsDir() && st.Size() > 0 {
+		m.downloaded[dest] = struct{}{}
+		return m, func() tea.Msg { return readyToOpenMsg{path: dest} }
+	}
+
 	if m.isBig(i.entry) {
 		m.confirm = &i.entry
 		m.confirmAction = "open"
 		return m, nil
 	}
+
 	m.startDownload(i.entry, true)
 	m.status = "downloading…"
 	return m, nil
@@ -276,11 +290,23 @@ func (m model) downloadSelected() (tea.Model, tea.Cmd) {
 	if !ok || i.entry.IsDir {
 		return m, nil
 	}
+
+	name := filepath.Base(i.entry.Name)
+	dest := m.manager.DestPath(m.cfg.DownloadDir, m.moveToCwd, name)
+
+	// Already downloaded → don't retry
+	if st, err := os.Stat(dest); err == nil && !st.IsDir() && st.Size() > 0 {
+		m.downloaded[dest] = struct{}{}
+		m.status = "already downloaded: " + dest
+		return m, nil
+	}
+
 	if m.isBig(i.entry) {
 		m.confirm = &i.entry
 		m.confirmAction = "download"
 		return m, nil
 	}
+
 	m.startDownload(i.entry, false)
 	m.status = "download started"
 	return m, nil
@@ -314,8 +340,7 @@ func (m *model) startDownload(e listing.Entry, openAfter bool) {
 		name = "file"
 	}
 	dest := m.manager.DestPath(m.cfg.DownloadDir, m.moveToCwd, name)
-	m.manager.Start(e.URL, name, dest, e.SizeBytes)
-	// openAfter can be extended later with job metadata
+	m.manager.Start(e.URL, name, dest, e.SizeBytes, openAfter)
 }
 
 func (m model) isBig(e listing.Entry) bool {
