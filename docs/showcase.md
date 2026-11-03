@@ -30,6 +30,12 @@ press `enter` on a file to download it and open it in your editor. this is neovi
 
 press `s`, choose an option with `j` / `k`, and hit `enter` to change it. changes save automatically. this screenshot has a 70 mb threshold; the default is 50 mb.
 
+## Config file
+
+[![config.yaml open in neovim](images/configuration-file.png)](images/configuration-file.png)
+
+you can edit `~/.config/indexof/config.yaml` directly too. set the editor, theme, download folder, cleanup behavior, and network options here, then restart indexof. the [config docs](configuration.md#config-file) explain the values shown.
+
 ## Visual selection
 
 [![visual mode active in a listing](images/visual-mode.png)](images/visual-mode.png)

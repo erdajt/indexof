@@ -12,6 +12,14 @@ press `s` to open settings. move with `j` / `k` or the arrows, then use `enter` 
 
 the download directory is shown here but you need to edit it in the config file. the user-agent is only available in the file too.
 
+## Config file
+
+[![config.yaml open in neovim](images/configuration-file.png)](images/configuration-file.png)
+
+this is a custom config. it uses neovim, the `tokyo` theme, `/tmp/indexof` for downloads, and a 70 mb file-size threshold. delete-on-exit is enabled, so files recorded as downloaded or opened during the session get cleaned up when you quit.
+
+the `user_agent: indexof/1.0` value shown here is also custom. the defaults are below.
+
 ## Defaults
 
 ```yaml

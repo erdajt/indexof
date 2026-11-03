@@ -86,6 +86,23 @@ press `enter` on a file to download it and open it in your editor. close the edi
 
 press `s`, select the theme, and hit `enter` to cycle. the screenshots use `tokyo`. the font, transparency, and background are from the terminal config.
 
+## Config
+
+[![config.yaml open in neovim](docs/images/configuration-file.png)](docs/images/configuration-file.png)
+
+the config lives at `~/.config/indexof/config.yaml`. use `s` to change settings in the app, or edit the file and restart indexof.
+
+| option | what it does |
+| --- | --- |
+| `editor` | which editor opens files |
+| `theme` | the app's colors |
+| `download_dir` | where files go when `move_to_cwd` is false |
+| `delete_on_exit` | whether downloaded or opened files get cleaned up when you quit |
+| `big_file_threshold_mb` | when to ask before downloading a file with a known size |
+| `retries`, `timeout_sec`, `user_agent` | network settings |
+
+this screenshot uses `tokyo`, a 70 mb threshold, and cleanup enabled. the [config docs](docs/configuration.md) have the defaults and the rest of the options.
+
 ## Docs
 
 - [screenshots](docs/showcase.md)
